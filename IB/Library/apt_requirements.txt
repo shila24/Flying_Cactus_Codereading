@@ -1,0 +1,8 @@
+# To run this program, execute "sudo apt-get install -r apt_requirements.txt"
+
+###### Requirements without Version Specifiers ######
+python-pip
+
+
+
+###### Requirements with Version Specifiers ######
