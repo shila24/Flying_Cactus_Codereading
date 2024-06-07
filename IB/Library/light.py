@@ -45,13 +45,15 @@ class Light:
         logger_info.info("Light initialized")
         
     
+    # Connects to the specified SPI device  
     def spi_open(self):
     
-        self.spi = spidev.SpiDev()     
-        self.spi.open(0, 0)                    
+        self.spi = spidev.SpiDev()   
+        self.spi.open(0, 0)  # (bus, device)                  
         self.spi.max_speed_hz = 1000000 
-        
     
+        
+    # Disconnects from the SPI device
     def spi_close(self):
         
         self.spi.close()
@@ -59,7 +61,8 @@ class Light:
         
     def get_light_val(self):
     
-        resp = self.spi.xfer2([0x68, 0x00])                 
+        # Performs an SPI transaction
+        resp = self.spi.xfer2([0x68, 0x00]) # ([, speed_hz, delay_usec, bits_per_word])                 
         value = ((resp[0] << 8) + resp[1]) & 0x3FF  
         # if value == 0:
         #     value = float("nan")
@@ -68,11 +71,13 @@ class Light:
     
     async def stored_judge(self):
     
+        # Skip stored judge
         if "Stored judge finish" in self.deamon_log:
             logger_info.info("Skipped stored judge")
             await self.lora.write("12")
             return
         
+        # Execute stored judge
         else:
             logger_info.info("-------------------- Stored judge start --------------------")
             await self.lora.write("10")
@@ -87,18 +92,22 @@ class Light:
 
                 light_val = self.get_light_val()
                 time_stamp = time.perf_counter() - duration_start_time
+                
+                # Get light value with 0.4sec interval
                 if abs(pre_time_stamp - time_stamp) > 0.4:
                     pre_time_stamp = time_stamp
                     logger_info.info("{:5.1f}| Light Value:{:>3d}, Continuation:{}".format(time_stamp, light_val, is_continue))
                     
-                
+                # Is Stored
                 if light_val < self.light_threshold:
                     pass
                 
+                # Not Stored
                 else:
                     is_continue = False
                     continue
 
+                # Is Stored
                 if is_continue:
 
                     duration_time = time.perf_counter() - duration_start_time
@@ -108,6 +117,7 @@ class Light:
                         await self.lora.write("110")
                         break
                 
+                # Is Stored
                 elif light_val < self.light_threshold:
                     is_continue = True
                     duration_start_time = time.perf_counter()
@@ -149,6 +159,7 @@ class Light:
                     
                 if is_continue:
                     
+                    # Is Released
                     if light_val > self.light_threshold:
                         pass
                     
@@ -163,6 +174,7 @@ class Light:
                         await self.lora.write("210")
                         break
                 
+                # Is Released
                 elif light_val > self.light_threshold:
                     is_continue = True
                     duration_start_time = time.perf_counter()
